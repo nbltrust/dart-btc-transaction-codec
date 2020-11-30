@@ -1,4 +1,4 @@
-name: bitcoin_trx_codec
+name: bitcoin_codec
 version: 0.0.1
 
 dependencies:

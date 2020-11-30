@@ -1,4 +1,4 @@
-import 'package:bitcoin_trx_codec/bitcoin_trx_codec.dart';
+import 'package:bitcoin_codec/bitcoin_codec.dart';
 import 'package:convert/convert.dart';
 
 void main() {

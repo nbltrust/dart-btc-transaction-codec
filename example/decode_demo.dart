@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:convert/convert.dart';
-import 'package:bitcoin_trx_codec/bitcoin_trx_codec.dart';
+import 'package:bitcoin_codec/bitcoin_codec.dart';
 
 void main(List<String> args) {
   var trx_bytes = args[0];
