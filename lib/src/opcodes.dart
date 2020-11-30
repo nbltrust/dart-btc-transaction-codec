@@ -1,0 +1,10 @@
+var OP_ZERO       = 0;
+var OP_NA         = 1;
+var OP_PUSHDATA1  = 76;
+var OP_PUSHDATA2  = 77;
+var OP_PUSHDATA3  = 78;
+var OP_DUP        = 118;
+var OP_EQUAL      = 135;
+var OP_EQUALVERIFY= 136;
+var OP_HASH160    = 169;
+var OP_CHECKSIG   = 172;

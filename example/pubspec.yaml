@@ -1,0 +1,6 @@
+name: bitcoin_trx_codec_demo
+version: 0.0.1
+
+dependencies:
+  bitcoin_trx_codec:
+    path: ../
