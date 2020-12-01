@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:convert/convert.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:bs58/bs58.dart' show base58;
+import 'package:hash/hash.dart';
 
 import 'opcodes.dart';
 import 'segwit_addr.dart' as segwit;
@@ -58,4 +60,14 @@ String scriptToAddress(Uint8List outScript, {bool testNet: false}) {
   } else {
     throw Exception("unsupported address format");
   }
+}
+
+String publicKeyToAddress(String hexX, String hexY, {bool testNet: false}) {
+  var plainKey = [0x4] + hex.decode(hexX) + hex.decode(hexY);
+  final sink = sha256.newSink();
+  sink.add(plainKey);
+  sink.close();
+  final hash = sink.hash;
+  var sha160 = RIPEMD160().update(hash.bytes).digest();
+  return base58CheckEncode(sha160, addressType: testNet ? 0x6f : 0x00);
 }
