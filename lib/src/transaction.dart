@@ -81,6 +81,14 @@ class BitcoinInput {
     sequence = reader.readAsInt(4).toInt();
   }
 
+  void setScript(Uint8List s) {
+    script = s;
+  }
+
+  void clearScript() {
+    script = Uint8List.fromList([]);
+  }
+
   void toBinary(ByteWriter writer) {
     writer.write(prevOutHash, reverse: true);
     writer.writeInt(prevOutIndex, 4);
@@ -166,6 +174,22 @@ class BitcoinTransaction {
 
   // add hash type 1 to end of data
   Uint8List get hashToSign => doubleSha256(Uint8List.fromList(rawData.toList() + [1,0,0,0]));
+
+  List<Uint8List> getHashToSign(List<Uint8List> inputScripts) {
+    List<Uint8List> ret = [];
+    if(inputScripts.length != inputs.length) {
+      throw Exception("unmatched input length and input script length");
+    }
+
+    inputs.forEach((element) {element.clearScript();});
+
+    for(var i = 0; i < inputScripts.length; i++) {
+      inputs[i].setScript(inputScripts[i]);
+      ret.add(hashToSign);
+      inputs[i].clearScript();
+    }
+    return ret;
+  }
 
   Map<String, dynamic> toJson() => {
     'version': version,
