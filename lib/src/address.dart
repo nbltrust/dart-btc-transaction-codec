@@ -62,8 +62,13 @@ String scriptToAddress(Uint8List outScript, {bool testNet: false}) {
   }
 }
 
-String publicKeyToAddress(String hexX, String hexY, {bool testNet: false}) {
-  var plainKey = [0x4] + hex.decode(hexX) + hex.decode(hexY);
+String publicKeyToAddress(String hexX, String hexY, {bool testNet: false, bool compressed: true}) {
+  var plainKey;
+  if(!compressed) {
+    plainKey = [0x4] + hex.decode(hexX) + hex.decode(hexY);
+  } else {
+    plainKey = [0x2] + hex.decode(hexX);
+  }
   final sink = sha256.newSink();
   sink.add(plainKey);
   sink.close();
