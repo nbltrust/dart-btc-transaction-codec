@@ -67,7 +67,7 @@ String publicKeyToAddress(String hexX, String hexY, {bool testNet: false, bool c
   if(!compressed) {
     plainKey = [0x4] + hex.decode(hexX) + hex.decode(hexY);
   } else {
-    plainKey = [0x2] + hex.decode(hexX);
+    plainKey = [BigInt.parse(hexY, radix: 16) & BigInt.from(1) == BigInt.zero ? 0x2 : 0x03] + hex.decode(hexX);
   }
   final sink = sha256.newSink();
   sink.add(plainKey);

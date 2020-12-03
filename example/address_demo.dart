@@ -19,7 +19,7 @@ void main() {
   var hexY = 'c7fc4c9e07979d151c47941cc20eb6a880aaabe83c7567f5b00743c11f2f2e36';
   print(publicKeyToAddress(hexX, hexY, testNet: true, compressed: false));
 
-  var hexX2 = '50863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b2352';
-  var hexY2 = '';//for compressed pubkey address, y value does not take effect
-  print(publicKeyToAddress(hexX2, hexY2, compressed: true));
+  var hexX2 = '2c24a9c7b1391263af3b62673b611f2c85799c87fcdb6b99756491521cd53463';
+  var hexY2 = 'f6a563e6e51623a7c7c779d49dfbab5d82e8552563cf538a8a298af17332f859';
+  print(publicKeyToAddress(hexX2, hexY2, testNet: true, compressed: true));
 }
