@@ -173,7 +173,15 @@ class BitcoinTransaction {
   }
 
   // add hash type 1 to end of data
-  Uint8List get hashToSign => doubleSha256(Uint8List.fromList(rawData.toList() + [1,0,0,0]));
+  Uint8List get hashToSign => doubleSha256(Uint8List.fromList(rawData.toList() + [1, 0, 0, 0]));
+
+  Uint8List getHash() {
+    return doubleSha256(Uint8List.fromList(rawData.toList()));
+  }
+
+  String getId() {
+    return hex.encode(getHash().reversed.toList());
+  }
 
   List<Uint8List> getHashToSign(List<Uint8List> inputScripts) {
     List<Uint8List> ret = [];
