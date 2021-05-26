@@ -1,19 +1,19 @@
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
+import 'package:bitcoin_flutter/bitcoin_flutter.dart';
 
 import 'address.dart';
 
 class ByteReader {
   Uint8List data;
   int currentPos;
-  ByteReader(this.data):
-    currentPos = 0;
+  ByteReader(this.data) : currentPos = 0;
 
   Uint8List read(int len, {reverse = false}) {
     var ret = data.sublist(currentPos, currentPos + len);
     currentPos += len;
-    if(reverse) {
+    if (reverse) {
       return Uint8List.fromList(ret.reversed.toList());
     } else {
       return ret;
@@ -30,10 +30,10 @@ class ByteReader {
 
 class ByteWriter {
   List<int> data;
-  ByteWriter(): data = [];
+  ByteWriter() : data = [];
 
   void write(Uint8List inputs, {reverse = false}) {
-    if(reverse) {
+    if (reverse) {
       data.addAll(inputs.reversed);
     } else {
       data.addAll(inputs);
@@ -42,22 +42,22 @@ class ByteWriter {
 
   void writeInt(dynamic val, int len) {
     String hexStr;
-    if(val is BigInt) {
+    if (val is BigInt) {
       hexStr = val.toRadixString(16);
     } else {
       hexStr = (val as int).toRadixString(16);
     }
-    if(hexStr.length.isOdd) {
+    if (hexStr.length.isOdd) {
       hexStr = '0' + hexStr;
     }
 
     List<int> bytes = [];
     bytes.addAll(hex.decode(hexStr).reversed);
-    if(bytes.length > len) {
+    if (bytes.length > len) {
       throw Exception('Integer value overflow');
     }
 
-    for(var i = len - bytes.length - 1; i >= 0; i--) {
+    for (var i = len - bytes.length - 1; i >= 0; i--) {
       bytes.add(0);
     }
 
@@ -72,6 +72,8 @@ class BitcoinInput {
   int prevOutIndex;
   Uint8List script;
   int sequence;
+
+  BitcoinInput();
 
   BitcoinInput.fromBinary(ByteReader reader) {
     prevOutHash = reader.read(32, reverse: true);
@@ -98,16 +100,18 @@ class BitcoinInput {
   }
 
   Map<String, dynamic> toJson() => {
-    'prevOutHash': '0x' + hex.encode(prevOutHash),
-    'prevOutIndex': prevOutIndex,
-    'script': hex.encode(script),
-    'sequence': sequence
-  };
+        'prevOutHash': '0x' + hex.encode(prevOutHash),
+        'prevOutIndex': prevOutIndex,
+        'script': hex.encode(script),
+        'sequence': sequence
+      };
 }
 
 class BitcoinOutput {
   Uint8List script;
   BigInt value;
+
+  BitcoinOutput();
 
   BitcoinOutput.fromBinary(ByteReader reader) {
     value = reader.readAsInt(8);
@@ -121,12 +125,10 @@ class BitcoinOutput {
     writer.write(script);
   }
 
-  Map<String, dynamic> toJson() => {
-    'script': hex.encode(script),
-    'value': value.isValidInt ? value.toInt():value.toString()
-  };
+  Map<String, dynamic> toJson() =>
+      {'script': hex.encode(script), 'value': value.isValidInt ? value.toInt() : value.toString()};
 
-  String getAddress([String net= 'main']) => scriptToAddress(script, testNet: net != 'main');
+  String getAddress([String net = 'main']) => scriptToAddress(script, testNet: net != 'main');
 }
 
 class BitcoinTransaction {
@@ -136,25 +138,46 @@ class BitcoinTransaction {
   int lockTime;
 
   BitcoinTransaction.fromBinary(Uint8List data) {
-    var reader = ByteReader(data);
-    version = reader.readAsInt(4).toInt();
-    inputs = new List();
-    var inputLen = reader.readAsInt(1).toInt();
-    for(var i = 0; i < inputLen; i++) {
-      inputs.add(BitcoinInput.fromBinary(reader));
-    }
+    final inner = Transaction.fromBuffer(data);
+    // print(inner.toString());
 
-    outputs = new List();
-    var outputLen = reader.readAsInt(1).toInt();
-    for(var i = 0; i < outputLen; i++) {
-      outputs.add(BitcoinOutput.fromBinary(reader));
-    }
+    version = inner.version;
+    lockTime = inner.locktime;
+    inputs = inner.ins.map((_input) {
+      BitcoinInput input = new BitcoinInput();
+      input.prevOutHash = Uint8List.fromList(_input.hash.reversed.toList());
+      input.prevOutIndex = _input.index;
+      input.script = _input.script;
+      input.sequence = _input.sequence;
+      return input;
+    }).toList();
 
-    lockTime = reader.readAsInt(4).toInt();
+    outputs = inner.outs.map((_output) {
+      BitcoinOutput output = new BitcoinOutput();
+      output.script = _output.script;
+      output.value = BigInt.from(_output.value);
+      return output;
+    }).toList();
 
-    if(!reader.hasReadToEnd) {
-      throw Exception('Has unread bytes');
-    }
+    // var reader = ByteReader(data);
+    // version = reader.readAsInt(4).toInt();
+    // inputs = new List();
+    // var inputLen = reader.readAsInt(1).toInt();
+    // for (var i = 0; i < inputLen; i++) {
+    //   inputs.add(BitcoinInput.fromBinary(reader));
+    // }
+
+    // outputs = new List();
+    // var outputLen = reader.readAsInt(1).toInt();
+    // for (var i = 0; i < outputLen; i++) {
+    //   outputs.add(BitcoinOutput.fromBinary(reader));
+    // }
+
+    // lockTime = reader.readAsInt(4).toInt();
+
+    // if (!reader.hasReadToEnd) {
+    //   throw Exception('Has unread bytes');
+    // }
   }
 
   Uint8List get rawData {
@@ -185,13 +208,15 @@ class BitcoinTransaction {
 
   List<Uint8List> getHashToSign(List<Uint8List> inputScripts) {
     List<Uint8List> ret = [];
-    if(inputScripts.length != inputs.length) {
+    if (inputScripts.length != inputs.length) {
       throw Exception("unmatched input length and input script length");
     }
 
-    inputs.forEach((element) {element.clearScript();});
+    inputs.forEach((element) {
+      element.clearScript();
+    });
 
-    for(var i = 0; i < inputScripts.length; i++) {
+    for (var i = 0; i < inputScripts.length; i++) {
       inputs[i].setScript(inputScripts[i]);
       ret.add(hashToSign);
       inputs[i].clearScript();
@@ -199,10 +224,6 @@ class BitcoinTransaction {
     return ret;
   }
 
-  Map<String, dynamic> toJson() => {
-    'version': version,
-    'inputs': inputs,
-    'outputs': outputs,
-    'lockTime': lockTime
-  };
+  Map<String, dynamic> toJson() =>
+      {'version': version, 'inputs': inputs, 'outputs': outputs, 'lockTime': lockTime};
 }

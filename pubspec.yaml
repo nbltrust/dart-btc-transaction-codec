@@ -2,6 +2,7 @@ name: bitcoin_codec
 version: 0.0.1
 
 dependencies:
+  bitcoin_flutter: 2.0.2
   convert: ^2.1.1
   cryptography: ^1.4.1
   bs58: ^1.0.1
