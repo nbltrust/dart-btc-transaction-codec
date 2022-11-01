@@ -112,7 +112,7 @@ List<dynamic> bech32_decode(String bech) {
 }
 
 /// General Power-of-2 base conversion
-List<int> convertBits(List<int> data, int fromBits, int toBits, {bool pad = true}) {
+List<int>? convertBits(List<int> data, int fromBits, int toBits, {bool pad = true}) {
   List<int> ret = [];
   var acc = 0;
   var bits = 0;
@@ -176,6 +176,9 @@ List<dynamic> decode(String hrp, String addr) {
 }
 
 String encode(String hrp, int witVer, List<int> witProg) {
-  var ret = bech32_encode(hrp, [witVer] + convertBits(witProg, 8, 5));
-  return ret;
+  var converBits = convertBits(witProg, 8, 5);
+  if(converBits == null){
+    return bech32_encode(hrp, [witVer]);
+  }
+  return bech32_encode(hrp, [witVer] + converBits );
 }

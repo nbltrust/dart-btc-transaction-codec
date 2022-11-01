@@ -1,7 +1,8 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
-import 'package:bitcoin_flutter/bitcoin_flutter.dart';
+import 'package:flutter_bitcoin/flutter_bitcoin.dart';
 
 import 'address.dart';
 
@@ -68,11 +69,10 @@ class ByteWriter {
 }
 
 class BitcoinInput {
-  Uint8List prevOutHash;
-  int prevOutIndex;
-  Uint8List script;
-  int sequence;
-
+  Uint8List prevOutHash = Uint8List.fromList([]);
+  int prevOutIndex = 0;
+  Uint8List script = Uint8List.fromList([]);
+  int sequence = 0;
   BitcoinInput();
 
   BitcoinInput.fromBinary(ByteReader reader) {
@@ -108,8 +108,8 @@ class BitcoinInput {
 }
 
 class BitcoinOutput {
-  Uint8List script;
-  BigInt value;
+  Uint8List script = Uint8List.fromList([]);
+  BigInt value = BigInt.zero;
 
   BitcoinOutput();
 
@@ -128,14 +128,14 @@ class BitcoinOutput {
   Map<String, dynamic> toJson() =>
       {'script': hex.encode(script), 'value': value.isValidInt ? value.toInt() : value.toString()};
 
-  String getAddress([String net = 'main']) => scriptToAddress(script, testNet: net != 'main');
+  Future<String> getAddress([String net = 'main']) async => await scriptToAddress(script, testNet: net != 'main');
 }
 
 class BitcoinTransaction {
-  int version;
-  List<BitcoinInput> inputs;
-  List<BitcoinOutput> outputs;
-  int lockTime;
+ late int version;
+ late List<BitcoinInput> inputs;
+ late List<BitcoinOutput> outputs;
+ late int lockTime;
 
   BitcoinTransaction.fromBinary(Uint8List data) {
     final inner = Transaction.fromBuffer(data);
@@ -144,18 +144,18 @@ class BitcoinTransaction {
     version = inner.version;
     lockTime = inner.locktime;
     inputs = inner.ins.map((_input) {
-      BitcoinInput input = new BitcoinInput();
-      input.prevOutHash = Uint8List.fromList(_input.hash.reversed.toList());
-      input.prevOutIndex = _input.index;
-      input.script = _input.script;
-      input.sequence = _input.sequence;
+      BitcoinInput input =  BitcoinInput();
+      input.prevOutHash = _input?.hash?.reversed.toList() != null ? Uint8List.fromList(_input!.hash!.reversed.toList()) : Uint8List.fromList([]);
+      input.prevOutIndex = _input?.index ?? 0;
+      input.script = _input?.script ?? Uint8List.fromList([]);
+      input.sequence = _input?.sequence ?? 0;
       return input;
     }).toList();
 
     outputs = inner.outs.map((_output) {
       BitcoinOutput output = new BitcoinOutput();
-      output.script = _output.script;
-      output.value = BigInt.from(_output.value);
+      output.script = _output.script ?? Uint8List.fromList([]);
+      output.value = _output.value != null ? BigInt.from(_output.value!): BigInt.zero;
       return output;
     }).toList();
 
@@ -196,17 +196,21 @@ class BitcoinTransaction {
   }
 
   // add hash type 1 to end of data
-  Uint8List get hashToSign => doubleSha256(Uint8List.fromList(rawData.toList() + [1, 0, 0, 0]));
+ Future<Uint8List>  hashToSign() async {
+    return await doubleSha256(Uint8List.fromList(rawData.toList() + [1, 0, 0, 0]));
+ }
 
-  Uint8List getHash() {
-    return doubleSha256(Uint8List.fromList(rawData.toList()));
+  Future<Uint8List> getHash() async{
+
+    return  await doubleSha256(Uint8List.fromList(rawData.toList()));
   }
 
-  String getId() {
-    return hex.encode(getHash().reversed.toList());
+  Future<String> getId() async{
+    final hash =  await getHash();
+    return hex.encode(hash.reversed.toList());
   }
 
-  List<Uint8List> getHashToSign(List<Uint8List> inputScripts) {
+  Future<List<Uint8List>> getHashToSign(List<Uint8List> inputScripts) async{
     List<Uint8List> ret = [];
     if (inputScripts.length != inputs.length) {
       throw Exception("unmatched input length and input script length");
@@ -216,11 +220,14 @@ class BitcoinTransaction {
       element.clearScript();
     });
 
-    for (var i = 0; i < inputScripts.length; i++) {
-      inputs[i].setScript(inputScripts[i]);
-      ret.add(hashToSign);
-      inputs[i].clearScript();
-    }
+    await Future.forEach<Uint8List>(inputScripts, (element) async{
+      final index = inputScripts.indexOf(element);
+      inputs[index].setScript(element);
+      final hash = await hashToSign();
+      ret.add(hash);
+      inputs[index].clearScript();
+    });
+
     return ret;
   }
 
