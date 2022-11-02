@@ -1,5 +1,5 @@
 name: bitcoin_codec
-version: 0.0.1
+version: 2.0.0
 
 dependencies:
   flutter_bitcoin: ^1.0.1
